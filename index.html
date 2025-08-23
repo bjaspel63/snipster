@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snipster</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snipster</title>
+  <link rel="stylesheet" href="style.css">
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="firebase-config.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
 
-<!-- Appwrite -->
-<script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
-<script src="appwrite-config.js"></script>
+  <!-- Appwrite -->
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@10.2.0"></script>
+  <script src="appwrite-config.js"></script>
 </head>
 <body>
 
@@ -74,36 +74,29 @@
   saveBtn.addEventListener("click", async () => {
     const title = document.getElementById("new-snippet-title").value.trim();
     const category = document.getElementById("new-snippet-category").value.trim();
-    const tags = document.getElementById("new-snippet-tags").value.split(",").map(t=>t.trim()).filter(Boolean);
-    const code = document.getElementById("new-snippet-code").value.trim();
-    const description = document.getElementById("new-snippet-desc").value.trim();
+    const tags = document.getElementById("new-snippet-tags").value.split(",").map(t=>t.trim());
+    const code = document.getElementById("new-snippet-code").value;
+    const description = document.getElementById("new-snippet-desc").value;
 
     if(!title || !category || !code) return alert("Title, category, and code are required.");
 
     const user = auth.currentUser;
     if(!user) return alert("Login required.");
 
-    const snippet = {
-      title,
-      category,
-      tags,
-      code,
-      description,
-      userId: user.uid,
-      createdAt: new Date().toISOString()
-    };
+    const snippet = {title, category, tags, code, description, userId: user.uid};
 
+    // Save to Appwrite with permissions
     try {
-      // Save to Appwrite with permissions
-      const doc = await database.createDocument(
-        APPWRITE_DATABASE_ID,
-        APPWRITE_COLLECTION_ID,
-        appwrite.ID.unique(),
+      const doc = await databases.createDocument(
+        "YOUR_DATABASE_ID",   // Replace with your Database ID
+        "YOUR_COLLECTION_ID", // Replace with your Collection ID
+        Appwrite.ID.unique(),
         snippet,
-        [appwrite.Permission.read(appwrite.Role.user(user.uid))],
-        [appwrite.Permission.update(appwrite.Role.user(user.uid)), appwrite.Permission.delete(appwrite.Role.user(user.uid))]
+        [
+          Appwrite.Permission.read(Appwrite.Role.user(user.uid)),
+          Appwrite.Permission.write(Appwrite.Role.user(user.uid))
+        ]
       );
-
       snippet.$id = doc.$id;
 
       // Update UI
@@ -114,10 +107,9 @@
         renderCheats(allData);
       }
 
-      alert("Snippet added successfully ✅");
     } catch(err){
       console.error("Error saving snippet:", err);
-      alert("❌ Failed to save snippet. Check console.");
+      alert("Error saving snippet: " + err.message);
     }
 
     // Reset & hide modal
