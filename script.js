@@ -5,138 +5,115 @@ const toggleThemeBtn = document.getElementById("toggle-theme");
 const showFavoritesBtn = document.getElementById("show-favorites");
 const consoleOutput = document.getElementById("console-output");
 
+// Offline queue for edits, favorites, adds, deletes
+let offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+
 let allData = [];
 let showFavoritesOnly = false;
 
-// Offline queue for edits and favorites
-let offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+// ---------------- Console Helpers ----------------
+function clearConsole(){ consoleOutput.textContent=""; }
+function printToConsole(text){ consoleOutput.textContent += text + "\n"; consoleOutput.scrollTop = consoleOutput.scrollHeight; }
 
-// Console helpers
-function clearConsole() { consoleOutput.textContent = ""; }
-function printToConsole(text) { consoleOutput.textContent += text + "\n"; consoleOutput.scrollTop = consoleOutput.scrollHeight; }
-
-// Theme toggle
-toggleThemeBtn.addEventListener("click", () => {
+// ---------------- Theme Toggle ----------------
+toggleThemeBtn.addEventListener("click", ()=>{
   document.body.classList.toggle("light");
   toggleThemeBtn.textContent = document.body.classList.contains("light") ? "🌙" : "☀️";
 });
 
-// Add offline operation to queue
-function addToQueue(op) {
+// ---------------- Offline Queue ----------------
+function addToQueue(op){
   offlineQueue.push(op);
   localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
 }
 
-// Sync offline queue when online
-async function syncOfflineQueue() {
+async function syncOfflineQueue(){
   if(!navigator.onLine) return;
   const user = auth.currentUser;
   if(!user) return;
 
   const queueCopy = [...offlineQueue];
-  for(const op of queueCopy) {
+  for(const op of queueCopy){
     try{
-      if(op.type==="edit") {
+      if(op.type==="edit"){
         await database.updateDocument("user_snippets", op.docId, op.data);
-      } else if(op.type==="favorites") {
-        const existing = await database.listDocuments("user_favorites", [
-          Appwrite.Query.equal("userId", user.uid)
-        ]);
-        if(existing.documents.length) {
-          await database.updateDocument("user_favorites", existing.documents[0].$id, {favorites: op.data});
+      } else if(op.type==="favorites"){
+        const existing = await database.listDocuments("user_favorites", [Appwrite.Query.equal("userId", user.uid)]);
+        if(existing.documents.length){
+          await database.updateDocument("user_favorites", existing.documents[0].$id, {favorites: JSON.stringify(op.data)});
         } else {
-          await database.createDocument("user_favorites", Appwrite.ID.unique(), {userId: user.uid, favorites: op.data});
+          await database.createDocument("user_favorites", Appwrite.ID.unique(), {userId: user.uid, favorites: JSON.stringify(op.data)}, [`user:${user.uid}`], [`user:${user.uid}`]);
         }
+      } else if(op.type==="add-snippet"){
+        await database.createDocument("user_snippets", Appwrite.ID.unique(), {...op.data, userId: user.uid}, [`user:${user.uid}`], [`user:${user.uid}`]);
+      } else if(op.type==="delete"){
+        await database.deleteDocument("user_snippets", op.docId);
       }
-      offlineQueue = offlineQueue.filter(item => item!==op);
+      offlineQueue = offlineQueue.filter(i=>i!==op);
       localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
-    } catch(err){
-      console.error("Sync failed:", err);
-    }
+    } catch(err){ console.error("Sync failed:", err); }
   }
 }
-
-// Monitor online status
 window.addEventListener("online", syncOfflineQueue);
 
-// Load favorites from Appwrite or offline
+// ---------------- Load User Favorites ----------------
 async function loadUserFavorites(){
   const user = auth.currentUser;
   if(!user) return [];
   try{
-    if(!navigator.onLine) {
-      const cachedFavs = JSON.parse(localStorage.getItem("favorites")||"[]");
-      return cachedFavs;
+    if(!navigator.onLine){
+      return JSON.parse(localStorage.getItem("favorites")||"[]");
     }
-    const res = await database.listDocuments("user_favorites", [
-      Appwrite.Query.equal("userId", user.uid)
-    ]);
-    return res.documents.length ? res.documents[0].favorites : [];
-  } catch(err){
-    console.error("Error loading favorites:", err);
-    return JSON.parse(localStorage.getItem("favorites")||"[]");
-  }
+    const res = await database.listDocuments("user_favorites", [Appwrite.Query.equal("userId", user.uid)]);
+    if(res.documents.length) return JSON.parse(res.documents[0].favorites||"[]");
+    return [];
+  } catch(err){ console.error(err); return JSON.parse(localStorage.getItem("favorites")||"[]"); }
 }
 
-// Load JSON + Appwrite snippets
-async function loadSnippets() {
+// ---------------- Load Snippets ----------------
+async function loadSnippets(){
   const res = await fetch("data/cheats.json"); 
   const data = await res.json();
   allData = data;
 
   const user = auth.currentUser;
-  if(user){
+  if(user && navigator.onLine){
     try{
-      if(navigator.onLine){
-        const appwriteData = await database.listDocuments("user_snippets", [
-          Appwrite.Query.equal("userId", user.uid)
-        ]);
-        appwriteData.documents.forEach(doc => {
-          const categoryIndex = allData.findIndex(c=>c.category===doc.category);
-          if(categoryIndex>-1) allData[categoryIndex].topics.push(doc);
-          else allData.push({category: doc.category, topics: [doc]});
-        });
-      } else {
-        console.log("Offline: using cached JSON only");
-      }
-    } catch(err){
-      console.error("Error loading snippets:", err);
-    }
+      const appwriteData = await database.listDocuments("user_snippets", [Appwrite.Query.equal("userId", user.uid)]);
+      appwriteData.documents.forEach(doc=>{
+        const catIndex = allData.findIndex(c=>c.category===doc.category);
+        if(catIndex>-1) allData[catIndex].topics.push(doc);
+        else allData.push({category: doc.category, topics:[doc]});
+      });
+    } catch(err){ console.error(err); }
   }
 
   const favs = await loadUserFavorites();
   localStorage.setItem("favorites", JSON.stringify(favs));
-
   renderCheats(allData);
 }
 
-// Render cheats with offline sync support
+// ---------------- Render Cheats ----------------
 function renderCheats(data){
-  cheatsheetEl.innerHTML = "";
-  data.forEach(category => {
+  cheatsheetEl.innerHTML="";
+  data.forEach(category=>{
     const catDiv = document.createElement("div");
     catDiv.className="category";
-    const catTitle = document.createElement("h2");
-    catTitle.textContent = category.category;
+    const catTitle = document.createElement("h2"); catTitle.textContent=category.category;
     catDiv.appendChild(catTitle);
 
-    category.topics.forEach(topic => {
+    category.topics.forEach(topic=>{
       const favorites = JSON.parse(localStorage.getItem("favorites")||"[]");
       if(showFavoritesOnly && !favorites.includes(topic.title)) return;
 
-      const topicDiv = document.createElement("div");
-      topicDiv.className="topic";
+      const topicDiv = document.createElement("div"); topicDiv.className="topic";
 
-      const topicTitle = document.createElement("h3");
-      topicTitle.textContent = topic.title;
-
-      const topicDesc = document.createElement("p"); topicDesc.textContent = topic.description;
-
+      const topicTitle = document.createElement("h3"); topicTitle.textContent=topic.title;
+      const topicDesc = document.createElement("p"); topicDesc.textContent=topic.description;
       const codeEl = document.createElement("pre"); codeEl.textContent=topic.code;
 
       // Copy
-      const copyBtn = document.createElement("button");
-      copyBtn.textContent="Copy";
+      const copyBtn = document.createElement("button"); copyBtn.textContent="Copy";
       copyBtn.onclick = ()=>{ navigator.clipboard.writeText(topic.code); copyBtn.textContent="Copied!"; setTimeout(()=>copyBtn.textContent="Copy",1000); }
 
       // Favorite
@@ -149,48 +126,51 @@ function renderCheats(data){
         localStorage.setItem("favorites", JSON.stringify(favs));
         favoriteBtn.textContent = favs.includes(topic.title)?"★":"☆";
 
-        if(navigator.onLine){
-          saveFavorites(favs);
-        } else {
-          addToQueue({type:"favorites", data:favs});
-        }
+        if(navigator.onLine) saveFavorites(favs);
+        else addToQueue({type:"favorites", data:favs});
       };
 
       // Run
-      const runBtn = document.createElement("button");
-      runBtn.textContent="Run";
-      runBtn.onclick = ()=>{
-        clearConsole();
-        try{
-          if(topic.language==="javascript") printToConsole(eval(topic.code));
-          else printToConsole("Run not supported for this language");
-        } catch(err){ printToConsole("Error: "+err.message); }
-      };
+      const runBtn = document.createElement("button"); runBtn.textContent="Run";
+      runBtn.onclick = ()=>{ clearConsole(); try{ if(topic.language==="javascript") printToConsole(eval(topic.code)); else printToConsole("Run not supported for this language"); } catch(err){ printToConsole("Error: "+err.message); } }
 
       // Edit
-      const editBtn = document.createElement("button");
-      editBtn.textContent="Edit";
+      const editBtn = document.createElement("button"); editBtn.textContent="Edit";
       let isEditing=false;
       editBtn.onclick = ()=>{
         if(!isEditing){
-          const textarea = document.createElement("textarea");
-          textarea.value = codeEl.textContent;
-          textarea.className="editable-code";
-          codeEl.replaceWith(textarea);
-          editBtn.textContent="Save"; isEditing=true;
+          const textarea = document.createElement("textarea"); textarea.value=codeEl.textContent; textarea.className="editable-code";
+          codeEl.replaceWith(textarea); editBtn.textContent="Save"; isEditing=true;
         } else {
           const textarea = document.querySelector(".editable-code");
           codeEl.textContent = textarea.value;
-          textarea.replaceWith(codeEl);
-          editBtn.textContent="Edit"; isEditing=false;
-
+          textarea.replaceWith(codeEl); editBtn.textContent="Edit"; isEditing=false;
           if(topic.$id){
             if(navigator.onLine){
-              database.updateDocument("user_snippets", topic.$id, {...topic, code: codeEl.textContent})
-                .catch(err=>console.error("Error updating snippet:", err));
+              database.updateDocument("user_snippets", topic.$id, {...topic, code: codeEl.textContent}).catch(err=>console.error(err));
+            } else addToQueue({type:"edit", docId: topic.$id, data:{...topic, code: codeEl.textContent}});
+          }
+        }
+      };
+
+      // Delete
+      const deleteBtn = document.createElement("button"); deleteBtn.textContent="Delete";
+      deleteBtn.onclick = ()=>{
+        if(confirm(`Are you sure you want to delete "${topic.title}"?`)){
+          if(topic.$id){
+            if(navigator.onLine){
+              database.deleteDocument("user_snippets", topic.$id).then(()=>{
+                allData.forEach(c=>c.topics=c.topics.filter(t=>t.$id!==topic.$id));
+                renderCheats(allData);
+              }).catch(err=>console.error(err));
             } else {
-              addToQueue({type:"edit", docId: topic.$id, data:{...topic, code: codeEl.textContent}});
+              addToQueue({type:"delete", docId: topic.$id});
+              allData.forEach(c=>c.topics=c.topics.filter(t=>t.$id!==topic.$id));
+              renderCheats(allData);
             }
+          } else {
+            allData.forEach(c=>c.topics=c.topics.filter(t=>t.title!==topic.title));
+            renderCheats(allData);
           }
         }
       };
@@ -202,6 +182,7 @@ function renderCheats(data){
       topicDiv.appendChild(favoriteBtn);
       topicDiv.appendChild(runBtn);
       topicDiv.appendChild(editBtn);
+      topicDiv.appendChild(deleteBtn);
       topicDiv.appendChild(topicDesc);
       topicDiv.appendChild(codeEl);
 
@@ -212,7 +193,7 @@ function renderCheats(data){
   });
 }
 
-// Filter
+// ---------------- Filter ----------------
 function filterTopics(){
   const term = searchInput.value.toLowerCase();
   const tagTerm = tagInput.value.toLowerCase();
@@ -235,8 +216,8 @@ showFavoritesBtn.addEventListener("click", ()=>{
   filterTopics();
 });
 
-// Load after auth
-auth.onAuthStateChanged(user => { 
+// ---------------- Load after Auth ----------------
+auth.onAuthStateChanged(user=>{
   if(user){
     loadSnippets();
     syncOfflineQueue();
