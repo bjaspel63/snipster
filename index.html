@@ -52,75 +52,8 @@
   </div>
 </div>
 
+<!-- All DOM logic is now inside script.js -->
 <script src="script.js"></script>
-<script>
-  // Firebase Auth Logout
-  document.getElementById("logout-btn").addEventListener("click", ()=>{
-    auth.signOut().then(()=> window.location.href="login.html");
-  });
-
-  // Redirect if not logged in
-  auth.onAuthStateChanged(user => { if(!user) window.location.href="login.html"; });
-
-  // FAB & Modal
-  const fab = document.getElementById("add-snippet-fab");
-  const modal = document.getElementById("snippet-modal");
-  const saveBtn = document.getElementById("save-snippet-btn");
-  const cancelBtn = document.getElementById("cancel-snippet-btn");
-
-  fab.addEventListener("click", ()=> modal.classList.remove("hidden"));
-  cancelBtn.addEventListener("click", ()=> modal.classList.add("hidden"));
-
-  saveBtn.addEventListener("click", async () => {
-    const title = document.getElementById("new-snippet-title").value.trim();
-    const category = document.getElementById("new-snippet-category").value.trim();
-    const tags = document.getElementById("new-snippet-tags").value.split(",").map(t=>t.trim());
-    const code = document.getElementById("new-snippet-code").value;
-    const description = document.getElementById("new-snippet-desc").value;
-
-    if(!title || !category || !code) return alert("Title, category, and code are required.");
-
-    const user = auth.currentUser;
-    if(!user) return alert("Login required.");
-
-    const snippet = {title, category, tags, code, description, userId: user.uid};
-
-    // Save to Appwrite with permissions
-    try {
-      const doc = await databases.createDocument(
-        "68a9f13e0029b493ba2a",   // Replace with your Database ID
-        "68a9f13200095b7bba8e", 
-        Appwrite.ID.unique(),
-        snippet,
-        [
-          Appwrite.Permission.read(Appwrite.Role.user(user.uid)),
-          Appwrite.Permission.write(Appwrite.Role.user(user.uid))
-        ]
-      );
-      snippet.$id = doc.$id;
-
-      // Update UI
-      if(window.allData){
-        let catIndex = allData.findIndex(c => c.category === category);
-        if(catIndex>-1) allData[catIndex].topics.push(snippet);
-        else allData.push({category, topics:[snippet]});
-        renderCheats(allData);
-      }
-
-    } catch(err){
-      console.error("Error saving snippet:", err);
-      alert("Error saving snippet: " + err.message);
-    }
-
-    // Reset & hide modal
-    modal.classList.add("hidden");
-    document.getElementById("new-snippet-title").value = "";
-    document.getElementById("new-snippet-category").value = "";
-    document.getElementById("new-snippet-tags").value = "";
-    document.getElementById("new-snippet-code").value = "";
-    document.getElementById("new-snippet-desc").value = "";
-  });
-</script>
 
 </body>
 </html>
