@@ -1,36 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Snipster</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snipster</title>
+<link rel="stylesheet" href="style.css">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.27.0/dist/supabase.min.js"></script>
 </head>
-<body>
+<body class="light">
   <header>
-    <button id="login-btn">Login</button>
+    <h1>Snipster</h1>
+    <button id="toggle-theme">🌙</button>
     <button id="logout-btn">Logout</button>
-    <input type="text" id="search" placeholder="Search...">
-    <input type="text" id="tag-filter" placeholder="Filter by tag...">
-    <button id="show-favorites">Show Favorites</button>
   </header>
 
-  <div id="cheatsheet"></div>
+  <div class="filters">
+    <input type="text" id="search" placeholder="Search snippets...">
+    <input type="text" id="tag-filter" placeholder="Filter by tag...">
+    <button id="show-favorites">Show Favorites</button>
+  </div>
 
-  <button id="add-snippet-fab">Add Snippet</button>
+  <div id="cheatsheet"></div>
+  <pre id="console-output"></pre>
+
+  <button id="add-snippet-fab">+ Add Snippet</button>
 
   <div id="snippet-modal" class="hidden">
     <input id="new-snippet-title" placeholder="Title">
     <input id="new-snippet-category" placeholder="Category">
-    <input id="new-snippet-tags" placeholder="Tags comma separated">
+    <input id="new-snippet-tags" placeholder="Tags (comma separated)">
     <textarea id="new-snippet-code" placeholder="Code"></textarea>
     <textarea id="new-snippet-desc" placeholder="Description"></textarea>
     <button id="save-snippet-btn">Save</button>
     <button id="cancel-snippet-btn">Cancel</button>
   </div>
 
-  <pre id="console-output"></pre>
-
-  <script type="module" src="script.js"></script>
+  <script src="index.js"></script>
 </body>
 </html>
