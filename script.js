@@ -1,10 +1,10 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
 // ===== Supabase Setup =====
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+import { supabase } from "./supabase-config.js";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Use supabase directly
+const { data, error } = await supabase.from("snippets").select("*");
 
 
 // ===== DOM Elements =====
