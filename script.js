@@ -204,4 +204,5 @@ function filterTopics(){
       const tagMatch = t.tags ? t.tags.join(" ").toLowerCase().includes(tagTerm) : false;
       return text.includes(term) && (tagTerm?tagMatch:true);
     });
+  }
    
