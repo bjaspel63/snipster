@@ -12,7 +12,7 @@
 <script src="firebase-config.js"></script>
 
 <!-- Appwrite -->
-<script src="https://cdn.jsdelivr.net/npm/appwrite@10.2.0/dist/appwrite.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
 <script src="appwrite-config.js"></script>
 </head>
 <body>
@@ -74,37 +74,50 @@
   saveBtn.addEventListener("click", async () => {
     const title = document.getElementById("new-snippet-title").value.trim();
     const category = document.getElementById("new-snippet-category").value.trim();
-    const tags = document.getElementById("new-snippet-tags").value.split(",").map(t=>t.trim());
-    const code = document.getElementById("new-snippet-code").value;
-    const description = document.getElementById("new-snippet-desc").value;
+    const tags = document.getElementById("new-snippet-tags").value.split(",").map(t=>t.trim()).filter(Boolean);
+    const code = document.getElementById("new-snippet-code").value.trim();
+    const description = document.getElementById("new-snippet-desc").value.trim();
 
     if(!title || !category || !code) return alert("Title, category, and code are required.");
 
     const user = auth.currentUser;
     if(!user) return alert("Login required.");
 
-    const snippet = {title, category, tags: JSON.stringify(tags), code, description, userId: user.uid};
+    const snippet = {
+      title,
+      category,
+      tags,
+      code,
+      description,
+      userId: user.uid,
+      createdAt: new Date().toISOString()
+    };
 
-    // Save to Appwrite with permissions
     try {
+      // Save to Appwrite with permissions
       const doc = await database.createDocument(
-        "user_snippets",
-        Appwrite.ID.unique(),
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_ID,
+        appwrite.ID.unique(),
         snippet,
-        [`user:${user.uid}`], // read
-        [`user:${user.uid}`]  // write
+        [appwrite.Permission.read(appwrite.Role.user(user.uid))],
+        [appwrite.Permission.update(appwrite.Role.user(user.uid)), appwrite.Permission.delete(appwrite.Role.user(user.uid))]
       );
+
       snippet.$id = doc.$id;
+
+      // Update UI
+      if(window.allData){
+        let catIndex = allData.findIndex(c => c.category === category);
+        if(catIndex>-1) allData[catIndex].topics.push(snippet);
+        else allData.push({category, topics:[snippet]});
+        renderCheats(allData);
+      }
+
+      alert("Snippet added successfully ✅");
     } catch(err){
       console.error("Error saving snippet:", err);
-    }
-
-    // Update UI
-    if(window.allData){
-      let catIndex = allData.findIndex(c => c.category === category);
-      if(catIndex>-1) allData[catIndex].topics.push(snippet);
-      else allData.push({category, topics:[snippet]});
-      renderCheats(allData);
+      alert("❌ Failed to save snippet. Check console.");
     }
 
     // Reset & hide modal
