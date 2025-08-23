@@ -1,0 +1,40 @@
+[
+  {
+    "category": "JavaScript",
+    "topics": [
+      {
+        "title": "Array Map",
+        "description": "Transforms an array by applying a function to each element.",
+        "code": "const nums = [1,2,3];\nconst doubled = nums.map(n => n * 2);",
+        "language": "javascript",
+        "tags": ["array","map","functional"]
+      },
+      {
+        "title": "Filter Array",
+        "description": "Filters elements based on a condition.",
+        "code": "const nums = [1,2,3,4];\nconst evens = nums.filter(n => n % 2 === 0);",
+        "language": "javascript",
+        "tags": ["array","filter"]
+      }
+    ]
+  },
+  {
+    "category": "Python",
+    "topics": [
+      {
+        "title": "List Comprehension",
+        "description": "Quickly create lists in one line.",
+        "code": "[x*2 for x in range(5)]",
+        "language": "python",
+        "tags": ["list","comprehension"]
+      },
+      {
+        "title": "Lambda Function",
+        "description": "Anonymous one-line functions.",
+        "code": "add = lambda a,b: a+b",
+        "language": "python",
+        "tags": ["function","lambda"]
+      }
+    ]
+  }
+]
