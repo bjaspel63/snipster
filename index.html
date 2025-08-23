@@ -6,18 +6,20 @@
 <title>Snipster</title>
 <link rel="stylesheet" href="style.css">
 
-<!-- Firebase -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-<!-- Supabase -->
+<!-- Supabase SDK v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.27.0/dist/supabase.min.js"></script>
 </head>
 <body class="light">
   <header>
     <h1>Snipster</h1>
-    <button id="toggle-theme">🌙</button>
-    <button id="logout-btn">Logout</button>
+    <div class="controls">
+      <button id="toggle-theme">🌙</button>
+      <button id="logout-btn">Logout</button>
+    </div>
   </header>
 
   <div class="filters">
@@ -26,25 +28,26 @@
     <button id="show-favorites">Show Favorites</button>
   </div>
 
-  <div id="cheatsheet"></div>
-  <pre id="console-output"></pre>
+  <main id="cheatsheet"></main>
 
-  <button id="add-snippet-fab">+ Add Snippet</button>
-
-  <div id="snippet-modal" class="hidden">
-    <input id="new-snippet-title" placeholder="Title">
-    <input id="new-snippet-category" placeholder="Category">
-    <input id="new-snippet-tags" placeholder="Tags (comma separated)">
-    <textarea id="new-snippet-code" placeholder="Code"></textarea>
-    <textarea id="new-snippet-desc" placeholder="Description"></textarea>
-    <button id="save-snippet-btn">Save</button>
-    <button id="cancel-snippet-btn">Cancel</button>
+  <div id="console-panel">
+    <pre id="console-output"></pre>
   </div>
 
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script src="script.js"></script>
+  <button id="add-snippet-fab" class="fab">+</button>
 
+  <div id="snippet-modal" class="modal hidden">
+    <div class="modal-content">
+      <input id="new-snippet-title" placeholder="Title">
+      <input id="new-snippet-category" placeholder="Category">
+      <input id="new-snippet-tags" placeholder="Tags (comma separated)">
+      <textarea id="new-snippet-code" placeholder="Code"></textarea>
+      <textarea id="new-snippet-desc" placeholder="Description"></textarea>
+      <button id="save-snippet-btn">Save</button>
+      <button id="cancel-snippet-btn">Cancel</button>
+    </div>
+  </div>
 
-
+  <script src="script.js"></script>
 </body>
 </html>
