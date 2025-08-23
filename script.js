@@ -52,28 +52,28 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const op of queueCopy) {
       try {
         if (op.type === "edit" && op.docId) {
-          await databases.updateDocument("68a9f13e0029b493ba2a", op.docId, op.data);
+          await databases.updateDocument("68a9f13200095b7bba8e", op.docId, op.data);
         } else if (op.type === "favorites") {
-          const res = await databases.listDocuments("68a9f13e0029b493ba2a", [
+          const res = await databases.listDocuments("68a9f13200095b7bba8e", [
             Appwrite.Query.equal("userId", user.uid)
           ]);
           if (res.documents.length) {
-            await databases.updateDocument("68a9f13e0029b493ba2a", res.documents[0].$id, { favorites: JSON.stringify(op.data) });
+            await databases.updateDocument("68a9f13200095b7bba8e", res.documents[0].$id, { favorites: JSON.stringify(op.data) });
           } else {
             await databases.createDocument(
-              "68a9f13e0029b493ba2a",
+              "68a9f13200095b7bba8e",
               Appwrite.ID.unique(),
               { userId: user.uid, favorites: JSON.stringify(op.data) }
             );
           }
         } else if (op.type === "add-snippet") {
           await databases.createDocument(
-            "68a9f13e0029b493ba2a",
+            "68a9f13200095b7bba8e",
             Appwrite.ID.unique(),
             { ...op.data, userId: user.uid }
           );
         } else if (op.type === "delete" && op.docId) {
-          await databases.deleteDocument("68a9f13e0029b493ba2a", op.docId);
+          await databases.deleteDocument("68a9f13200095b7bba8e", op.docId);
         }
         offlineQueue = offlineQueue.filter(i => i !== op);
         localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
@@ -87,14 +87,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const user = auth.currentUser;
     if (!user) return;
     try {
-      const res = await databases.listDocuments("68a9f13e0029b493ba2a", [
+      const res = await databases.listDocuments("68a9f13200095b7bba8e", [
         Appwrite.Query.equal("userId", user.uid)
       ]);
       if (res.documents.length) {
-        await databases.updateDocument("68a9f13e0029b493ba2a", res.documents[0].$id, { favorites: JSON.stringify(favs) });
+        await databases.updateDocument("68a9f13200095b7bba8e", res.documents[0].$id, { favorites: JSON.stringify(favs) });
       } else {
         await databases.createDocument(
-          "68a9f13e0029b493ba2a",
+          "68a9f13200095b7bba8e",
           Appwrite.ID.unique(),
           { userId: user.uid, favorites: JSON.stringify(favs) }
         );
@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!user) return [];
     try {
       if (!navigator.onLine) return JSON.parse(localStorage.getItem("favorites") || "[]");
-      const res = await databases.listDocuments("68a9f13e0029b493ba2a", [
+      const res = await databases.listDocuments("68a9f13200095b7bba8e", [
         Appwrite.Query.equal("userId", user.uid)
       ]);
       return res.documents.length ? JSON.parse(res.documents[0].favorites || "[]") : [];
@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const user = auth.currentUser;
       if (user && navigator.onLine) {
         try {
-          const appwriteData = await databases.listDocuments("68a9f13e0029b493ba2a", [
+          const appwriteData = await databases.listDocuments("68a9f13200095b7bba8e", [
             Appwrite.Query.equal("userId", user.uid)
           ]);
           appwriteData.documents.forEach(doc => {
@@ -249,8 +249,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const doc = await databases.createDocument(
-        "68a9f13e0029b493ba2a",      // database ID
-        "68a9f13200095b7bba8e",      // collection ID
+        "68a9f13200095b7bba8e",      // database ID
+        "68a9f13e0029b493ba2a",      // collection ID
         Appwrite.ID.unique(),
         snippet,
         [Appwrite.Permission.read(Appwrite.Role.user(user.uid)), Appwrite.Permission.write(Appwrite.Role.user(user.uid))]
