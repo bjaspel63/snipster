@@ -19,8 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ========= Appwrite Setup =========
   const client = new Appwrite.Client()
-    .setEndpoint("https://syd.cloud.appwrite.io/v1") // your Appwrite endpoint
-    .setProject("YOUR_PROJECT_ID"); // replace with your Project ID
+    .setEndpoint("https://syd.cloud.appwrite.io/v1") 
+    .setProject("68a9eab60024173932c4"); 
 
   const databases = new Appwrite.Databases(client);
 
