@@ -7,7 +7,7 @@ const ASSETS_TO_CACHE = [
   "/style.css",
   "/script.js",
   "/firebase-config.js",
-  "/appwrite-config.js",
+  "/supabase-config.js",
   "/manifest.json",
   "/data/cheats.json",
   "/assets/icons/icon-192.png",
