@@ -5,55 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Snipster</title>
   <link rel="stylesheet" href="style.css">
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js"></script>
-
-  <!-- Appwrite -->
-  <script src="https://cdn.jsdelivr.net/npm/appwrite@10.2.0"></script>
-  <script src="appwrite-config.js"></script>
 </head>
 <body>
-
-<header>
-  <h1>Snipster - Cheat Sheet</h1>
-  <div class="controls">
-    <input type="text" id="search" placeholder="Search...">
-    <input type="text" id="tag-filter" placeholder="Filter tags...">
-    <button id="toggle-theme">🌙</button>
-    <button id="show-favorites">⭐ Favorites</button>
+  <header>
+    <button id="login-btn">Login</button>
     <button id="logout-btn">Logout</button>
-  </div>
-</header>
+    <input type="text" id="search" placeholder="Search...">
+    <input type="text" id="tag-filter" placeholder="Filter by tag...">
+    <button id="show-favorites">Show Favorites</button>
+  </header>
 
-<main id="cheatsheet"></main>
+  <div id="cheatsheet"></div>
 
-<div id="console-panel">
-  <h3>Console</h3>
-  <pre id="console-output"></pre>
-</div>
+  <button id="add-snippet-fab">Add Snippet</button>
 
-<!-- FAB for Add Snippet -->
-<button id="add-snippet-fab" class="fab">+</button>
-
-<!-- Modal for Adding Snippet -->
-<div id="snippet-modal" class="modal hidden">
-  <div class="modal-content">
-    <h3>Add New Snippet</h3>
-    <input type="text" id="new-snippet-title" placeholder="Title">
-    <input type="text" id="new-snippet-category" placeholder="Category">
-    <input type="text" id="new-snippet-tags" placeholder="Tags (comma separated)">
+  <div id="snippet-modal" class="hidden">
+    <input id="new-snippet-title" placeholder="Title">
+    <input id="new-snippet-category" placeholder="Category">
+    <input id="new-snippet-tags" placeholder="Tags comma separated">
     <textarea id="new-snippet-code" placeholder="Code"></textarea>
     <textarea id="new-snippet-desc" placeholder="Description"></textarea>
     <button id="save-snippet-btn">Save</button>
     <button id="cancel-snippet-btn">Cancel</button>
   </div>
-</div>
 
-<!-- All DOM logic is now inside script.js -->
-<script src="script.js"></script>
+  <pre id="console-output"></pre>
 
+  <script type="module" src="script.js"></script>
 </body>
 </html>
