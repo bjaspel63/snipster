@@ -5,13 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Snipster</title>
 <link rel="stylesheet" href="style.css">
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
+
+<!-- Appwrite -->
 <script src="https://cdn.jsdelivr.net/npm/appwrite@10.2.0/dist/appwrite.min.js"></script>
 <script src="appwrite-config.js"></script>
 </head>
 <body>
+
 <header>
   <h1>Snipster - Cheat Sheet</h1>
   <div class="controls">
@@ -30,14 +35,87 @@
   <pre id="console-output"></pre>
 </div>
 
+<!-- FAB for Add Snippet -->
+<button id="add-snippet-fab" class="fab">+</button>
+
+<!-- Modal for Adding Snippet -->
+<div id="snippet-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Add New Snippet</h3>
+    <input type="text" id="new-snippet-title" placeholder="Title">
+    <input type="text" id="new-snippet-category" placeholder="Category">
+    <input type="text" id="new-snippet-tags" placeholder="Tags (comma separated)">
+    <textarea id="new-snippet-code" placeholder="Code"></textarea>
+    <textarea id="new-snippet-desc" placeholder="Description"></textarea>
+    <button id="save-snippet-btn">Save</button>
+    <button id="cancel-snippet-btn">Cancel</button>
+  </div>
+</div>
+
 <script src="script.js"></script>
 <script>
-document.getElementById("logout-btn").addEventListener("click", ()=>{
-  auth.signOut().then(()=> window.location.href="login.html");
-});
+  // Firebase Auth Logout
+  document.getElementById("logout-btn").addEventListener("click", ()=>{
+    auth.signOut().then(()=> window.location.href="login.html");
+  });
 
-// Redirect if not logged in
-auth.onAuthStateChanged(user => { if(!user) window.location.href="login.html"; });
+  // Redirect if not logged in
+  auth.onAuthStateChanged(user => { if(!user) window.location.href="login.html"; });
+
+  // FAB & Modal
+  const fab = document.getElementById("add-snippet-fab");
+  const modal = document.getElementById("snippet-modal");
+  const saveBtn = document.getElementById("save-snippet-btn");
+  const cancelBtn = document.getElementById("cancel-snippet-btn");
+
+  fab.addEventListener("click", ()=> modal.classList.remove("hidden"));
+  cancelBtn.addEventListener("click", ()=> modal.classList.add("hidden"));
+
+  saveBtn.addEventListener("click", async () => {
+    const title = document.getElementById("new-snippet-title").value.trim();
+    const category = document.getElementById("new-snippet-category").value.trim();
+    const tags = document.getElementById("new-snippet-tags").value.split(",").map(t=>t.trim());
+    const code = document.getElementById("new-snippet-code").value;
+    const description = document.getElementById("new-snippet-desc").value;
+
+    if(!title || !category || !code) return alert("Title, category, and code are required.");
+
+    const user = auth.currentUser;
+    if(!user) return alert("Login required.");
+
+    const snippet = {title, category, tags: JSON.stringify(tags), code, description, userId: user.uid};
+
+    // Save to Appwrite with permissions
+    try {
+      const doc = await database.createDocument(
+        "user_snippets",
+        Appwrite.ID.unique(),
+        snippet,
+        [`user:${user.uid}`], // read
+        [`user:${user.uid}`]  // write
+      );
+      snippet.$id = doc.$id;
+    } catch(err){
+      console.error("Error saving snippet:", err);
+    }
+
+    // Update UI
+    if(window.allData){
+      let catIndex = allData.findIndex(c => c.category === category);
+      if(catIndex>-1) allData[catIndex].topics.push(snippet);
+      else allData.push({category, topics:[snippet]});
+      renderCheats(allData);
+    }
+
+    // Reset & hide modal
+    modal.classList.add("hidden");
+    document.getElementById("new-snippet-title").value = "";
+    document.getElementById("new-snippet-category").value = "";
+    document.getElementById("new-snippet-tags").value = "";
+    document.getElementById("new-snippet-code").value = "";
+    document.getElementById("new-snippet-desc").value = "";
+  });
 </script>
+
 </body>
 </html>
