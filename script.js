@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const showFavoritesBtn = document.getElementById("show-favorites");
   const consoleOutput = document.getElementById("console-output");
 
-  // FAB modal elements (match your HTML IDs)
   const fabBtn = document.getElementById("add-snippet-fab");
   const modal = document.getElementById("snippet-modal");
   const cancelBtn = document.getElementById("cancel-snippet-btn");
@@ -17,6 +16,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let allData = [];
   let showFavoritesOnly = false;
   let offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+
+  // ========= Appwrite Setup =========
+  const client = new Appwrite.Client()
+    .setEndpoint("https://syd.cloud.appwrite.io/v1") // your Appwrite endpoint
+    .setProject("YOUR_PROJECT_ID"); // replace with your Project ID
+
+  const databases = new Appwrite.Databases(client);
 
   // ========= Console Helpers =========
   function clearConsole() { consoleOutput.textContent = ""; }
@@ -45,17 +51,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const queueCopy = [...offlineQueue];
     for (const op of queueCopy) {
       try {
-        if (op.type === "edit") await database.updateDocument("user_snippets", op.docId, op.data);
-        else if (op.type === "favorites") {
-          const existing = await database.listDocuments("user_favorites", [Appwrite.Query.equal("userId", user.uid)]);
-          if (existing.documents.length)
-            await database.updateDocument(existing.documents[0].$id, { favorites: JSON.stringify(op.data) });
-          else
-            await database.createDocument("user_favorites", Appwrite.ID.unique(), { userId: user.uid, favorites: JSON.stringify(op.data) }, [`user:${user.uid}`], [`user:${user.uid}`]);
+        if (op.type === "edit" && op.docId) {
+          await databases.updateDocument("68a9f13e0029b493ba2a", op.docId, op.data);
+        } else if (op.type === "favorites") {
+          const res = await databases.listDocuments("68a9f13e0029b493ba2a", [
+            Appwrite.Query.equal("userId", user.uid)
+          ]);
+          if (res.documents.length) {
+            await databases.updateDocument("68a9f13e0029b493ba2a", res.documents[0].$id, { favorites: JSON.stringify(op.data) });
+          } else {
+            await databases.createDocument(
+              "68a9f13e0029b493ba2a",
+              Appwrite.ID.unique(),
+              { userId: user.uid, favorites: JSON.stringify(op.data) }
+            );
+          }
         } else if (op.type === "add-snippet") {
-          await database.createDocument("user_snippets", Appwrite.ID.unique(), { ...op.data, userId: user.uid }, [`user:${user.uid}`], [`user:${user.uid}`]);
-        } else if (op.type === "delete") await database.deleteDocument("user_snippets", op.docId);
-
+          await databases.createDocument(
+            "68a9f13e0029b493ba2a",
+            Appwrite.ID.unique(),
+            { ...op.data, userId: user.uid }
+          );
+        } else if (op.type === "delete" && op.docId) {
+          await databases.deleteDocument("68a9f13e0029b493ba2a", op.docId);
+        }
         offlineQueue = offlineQueue.filter(i => i !== op);
         localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
       } catch (err) { console.error("Sync failed:", err); }
@@ -68,11 +87,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const user = auth.currentUser;
     if (!user) return;
     try {
-      const res = await database.listDocuments("user_favorites", [Appwrite.Query.equal("userId", user.uid)]);
-      if (res.documents.length)
-        await database.updateDocument(res.documents[0].$id, { favorites: JSON.stringify(favs) });
-      else
-        await database.createDocument("user_favorites", Appwrite.ID.unique(), { userId: user.uid, favorites: JSON.stringify(favs) });
+      const res = await databases.listDocuments("68a9f13e0029b493ba2a", [
+        Appwrite.Query.equal("userId", user.uid)
+      ]);
+      if (res.documents.length) {
+        await databases.updateDocument("68a9f13e0029b493ba2a", res.documents[0].$id, { favorites: JSON.stringify(favs) });
+      } else {
+        await databases.createDocument(
+          "68a9f13e0029b493ba2a",
+          Appwrite.ID.unique(),
+          { userId: user.uid, favorites: JSON.stringify(favs) }
+        );
+      }
     } catch (err) { console.error("Error saving favorites:", err); }
   }
 
@@ -81,7 +107,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!user) return [];
     try {
       if (!navigator.onLine) return JSON.parse(localStorage.getItem("favorites") || "[]");
-      const res = await database.listDocuments("user_favorites", [Appwrite.Query.equal("userId", user.uid)]);
+      const res = await databases.listDocuments("68a9f13e0029b493ba2a", [
+        Appwrite.Query.equal("userId", user.uid)
+      ]);
       return res.documents.length ? JSON.parse(res.documents[0].favorites || "[]") : [];
     } catch (err) { console.error(err); return JSON.parse(localStorage.getItem("favorites") || "[]"); }
   }
@@ -95,7 +123,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const user = auth.currentUser;
       if (user && navigator.onLine) {
         try {
-          const appwriteData = await database.listDocuments("user_snippets", [Appwrite.Query.equal("userId", user.uid)]);
+          const appwriteData = await databases.listDocuments("68a9f13e0029b493ba2a", [
+            Appwrite.Query.equal("userId", user.uid)
+          ]);
           appwriteData.documents.forEach(doc => {
             const catIndex = allData.findIndex(c => c.category === doc.category);
             if (catIndex > -1) allData[catIndex].topics.push(doc);
@@ -219,14 +249,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const doc = await databases.createDocument(
-        "68a9f13e0029b493ba2a",
-        "68a9f13200095b7bba8e",
+        "68a9f13e0029b493ba2a",      // database ID
+        "68a9f13200095b7bba8e",      // collection ID
         Appwrite.ID.unique(),
         snippet,
         [Appwrite.Permission.read(Appwrite.Role.user(user.uid)), Appwrite.Permission.write(Appwrite.Role.user(user.uid))]
       );
+      // Assign $id so the snippet can be referenced
       snippet.$id = doc.$id;
 
+      // Add snippet to local allData
       const catIndex = allData.findIndex(c => c.category === category);
       if (catIndex > -1) allData[catIndex].topics.push(snippet);
       else allData.push({ category, topics: [snippet] });
@@ -234,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCheats(allData);
       modal.classList.add("hidden");
 
-      // Reset fields
+      // Reset input fields
       document.getElementById("new-snippet-title").value = "";
       document.getElementById("new-snippet-category").value = "";
       document.getElementById("new-snippet-tags").value = "";
@@ -242,10 +274,13 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("new-snippet-desc").value = "";
     } catch (err) {
       console.error("Error saving snippet:", err);
-      alert("Error saving snippet: " + err.message);
+      alert("Error saving snippet: " + (err.message || err));
+      // Optional: queue offline if network fails
+      addToQueue({ type: "add-snippet", data: snippet });
     }
   });
 
   // ========= Init =========
   loadSnippets();
 });
+
