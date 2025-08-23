@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleThemeBtn = document.getElementById("toggle-theme");
   const showFavoritesBtn = document.getElementById("show-favorites");
   const consoleOutput = document.getElementById("console-output");
+  const logoutBtn = document.getElementById("logout-btn"); // logout button
 
   const fabBtn = document.getElementById("add-snippet-fab");
   const modal = document.getElementById("snippet-modal");
@@ -19,9 +20,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ========= Appwrite Setup =========
   const client = new Appwrite.Client()
-    .setEndpoint("https://syd.cloud.appwrite.io/v1") 
-    .setProject("68a9eab60024173932c4"); 
+    .setEndpoint("https://syd.cloud.appwrite.io/v1")
+    .setProject("68a9eab60024173932c4");
 
+  const auth = new Appwrite.Account(client);
   const databases = new Appwrite.Databases(client);
 
   // ========= Console Helpers =========
@@ -45,7 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function syncOfflineQueue() {
     if (!navigator.onLine) return;
-    const user = auth.currentUser;
+    let user;
+    try { user = await auth.get(); } catch { return; }
     if (!user) return;
 
     const queueCopy = [...offlineQueue];
@@ -55,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
           await databases.updateDocument("68a9f13200095b7bba8e", op.docId, op.data);
         } else if (op.type === "favorites") {
           const res = await databases.listDocuments("68a9f13200095b7bba8e", [
-            Appwrite.Query.equal("userId", user.uid)
+            Appwrite.Query.equal("userId", user.$id)
           ]);
           if (res.documents.length) {
             await databases.updateDocument("68a9f13200095b7bba8e", res.documents[0].$id, { favorites: JSON.stringify(op.data) });
@@ -63,14 +66,14 @@ document.addEventListener("DOMContentLoaded", () => {
             await databases.createDocument(
               "68a9f13200095b7bba8e",
               Appwrite.ID.unique(),
-              { userId: user.uid, favorites: JSON.stringify(op.data) }
+              { userId: user.$id, favorites: JSON.stringify(op.data) }
             );
           }
         } else if (op.type === "add-snippet") {
           await databases.createDocument(
             "68a9f13200095b7bba8e",
             Appwrite.ID.unique(),
-            { ...op.data, userId: user.uid }
+            { ...op.data, userId: user.$id }
           );
         } else if (op.type === "delete" && op.docId) {
           await databases.deleteDocument("68a9f13200095b7bba8e", op.docId);
@@ -84,11 +87,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ========= Favorites =========
   async function saveFavorites(favs) {
-    const user = auth.currentUser;
+    let user;
+    try { user = await auth.get(); } catch { return; }
     if (!user) return;
     try {
       const res = await databases.listDocuments("68a9f13200095b7bba8e", [
-        Appwrite.Query.equal("userId", user.uid)
+        Appwrite.Query.equal("userId", user.$id)
       ]);
       if (res.documents.length) {
         await databases.updateDocument("68a9f13200095b7bba8e", res.documents[0].$id, { favorites: JSON.stringify(favs) });
@@ -96,23 +100,43 @@ document.addEventListener("DOMContentLoaded", () => {
         await databases.createDocument(
           "68a9f13200095b7bba8e",
           Appwrite.ID.unique(),
-          { userId: user.uid, favorites: JSON.stringify(favs) }
+          { userId: user.$id, favorites: JSON.stringify(favs) }
         );
       }
     } catch (err) { console.error("Error saving favorites:", err); }
   }
 
   async function loadUserFavorites() {
-    const user = auth.currentUser;
-    if (!user) return [];
     try {
       if (!navigator.onLine) return JSON.parse(localStorage.getItem("favorites") || "[]");
+      const user = await auth.get();
+      if (!user) return [];
       const res = await databases.listDocuments("68a9f13200095b7bba8e", [
-        Appwrite.Query.equal("userId", user.uid)
+        Appwrite.Query.equal("userId", user.$id)
       ]);
       return res.documents.length ? JSON.parse(res.documents[0].favorites || "[]") : [];
     } catch (err) { console.error(err); return JSON.parse(localStorage.getItem("favorites") || "[]"); }
   }
+
+  // ========= Logout =========
+  async function logout() {
+    const confirmLogout = confirm("Are you sure you want to log out?");
+    if (!confirmLogout) return;
+    try {
+      await auth.deleteSession("current");
+      alert("Logged out successfully!");
+      localStorage.removeItem("favorites");
+      localStorage.removeItem("offlineQueue");
+      allData = [];
+      renderCheats(allData);
+      window.location.reload();
+    } catch (err) {
+      console.error("Logout failed:", err);
+      alert("Logout failed: " + err.message);
+    }
+  }
+
+  if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
   // ========= Load Snippets =========
   async function loadSnippets() {
@@ -120,11 +144,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("data/cheats.json");
       allData = await res.json();
 
-      const user = auth.currentUser;
+      let user;
+      try { user = await auth.get(); } catch {}
       if (user && navigator.onLine) {
         try {
           const appwriteData = await databases.listDocuments("68a9f13200095b7bba8e", [
-            Appwrite.Query.equal("userId", user.uid)
+            Appwrite.Query.equal("userId", user.$id)
           ]);
           appwriteData.documents.forEach(doc => {
             const catIndex = allData.findIndex(c => c.category === doc.category);
@@ -198,7 +223,6 @@ document.addEventListener("DOMContentLoaded", () => {
           else printToConsole("Run not supported"); } catch (err) { printToConsole("Error: " + err.message); }
         };
 
-        // Append elements
         topicDiv.append(topicTitle, copyBtn, favoriteBtn, runBtn, topicDesc, codeEl);
         catDiv.appendChild(topicDiv);
       });
@@ -242,23 +266,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!title || !category || !code) return alert("Title, category, and code are required.");
 
-    const user = auth.currentUser;
+    let user;
+    try { user = await auth.get(); } catch { return alert("Login required."); }
     if (!user) return alert("Login required.");
 
-    const snippet = { title, category, tags, code, description, userId: user.uid };
+    const snippet = { title, category, tags, code, description, userId: user.$id };
 
     try {
       const doc = await databases.createDocument(
-        "68a9f13200095b7bba8e",      // database ID
-        "68a9f13e0029b493ba2a",      // collection ID
+        "68a9f13200095b7bba8e",
+        "68a9f13e0029b493ba2a",
         Appwrite.ID.unique(),
         snippet,
-        [Appwrite.Permission.read(Appwrite.Role.user(user.uid)), Appwrite.Permission.write(Appwrite.Role.user(user.uid))]
+        [Appwrite.Permission.read(Appwrite.Role.user(user.$id)), Appwrite.Permission.write(Appwrite.Role.user(user.$id))]
       );
-      // Assign $id so the snippet can be referenced
       snippet.$id = doc.$id;
 
-      // Add snippet to local allData
       const catIndex = allData.findIndex(c => c.category === category);
       if (catIndex > -1) allData[catIndex].topics.push(snippet);
       else allData.push({ category, topics: [snippet] });
@@ -266,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCheats(allData);
       modal.classList.add("hidden");
 
-      // Reset input fields
+      // Reset inputs
       document.getElementById("new-snippet-title").value = "";
       document.getElementById("new-snippet-category").value = "";
       document.getElementById("new-snippet-tags").value = "";
@@ -275,7 +298,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.error("Error saving snippet:", err);
       alert("Error saving snippet: " + (err.message || err));
-      // Optional: queue offline if network fails
       addToQueue({ type: "add-snippet", data: snippet });
     }
   });
@@ -283,4 +305,3 @@ document.addEventListener("DOMContentLoaded", () => {
   // ========= Init =========
   loadSnippets();
 });
-
