@@ -5,11 +5,15 @@ const toggleThemeBtn = document.getElementById("toggle-theme");
 const showFavoritesBtn = document.getElementById("show-favorites");
 const consoleOutput = document.getElementById("console-output");
 
-// Offline queue for edits, favorites, adds, deletes
-let offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+// FAB modal elements
+const fabBtn = document.getElementById("add-snippet-btn");
+const modal = document.getElementById("add-snippet-modal");
+const closeModalBtn = document.getElementById("close-modal-btn");
+const saveSnippetBtn = document.getElementById("save-snippet-btn");
 
 let allData = [];
 let showFavoritesOnly = false;
+let offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
 
 // ---------------- Console Helpers ----------------
 function clearConsole(){ consoleOutput.textContent=""; }
@@ -45,7 +49,7 @@ async function syncOfflineQueue(){
           await database.createDocument("user_favorites", Appwrite.ID.unique(), {userId: user.uid, favorites: JSON.stringify(op.data)}, [`user:${user.uid}`], [`user:${user.uid}`]);
         }
       } else if(op.type==="add-snippet"){
-        await database.createDocument("user_snippets", Appwrite.ID.unique(), {...op.data, userId: user.uid}, [`user:${user.uid}`], [`user:${user.uid}`]);
+        await database.createDocument("user_snippets", Appwrite.ID.unique(), {...op.data, userId:user.uid}, [`user:${user.uid}`], [`user:${user.uid}`]);
       } else if(op.type==="delete"){
         await database.deleteDocument("user_snippets", op.docId);
       }
@@ -61,9 +65,7 @@ async function loadUserFavorites(){
   const user = auth.currentUser;
   if(!user) return [];
   try{
-    if(!navigator.onLine){
-      return JSON.parse(localStorage.getItem("favorites")||"[]");
-    }
+    if(!navigator.onLine) return JSON.parse(localStorage.getItem("favorites")||"[]");
     const res = await database.listDocuments("user_favorites", [Appwrite.Query.equal("userId", user.uid)]);
     if(res.documents.length) return JSON.parse(res.documents[0].favorites||"[]");
     return [];
@@ -107,7 +109,6 @@ function renderCheats(data){
       if(showFavoritesOnly && !favorites.includes(topic.title)) return;
 
       const topicDiv = document.createElement("div"); topicDiv.className="topic";
-
       const topicTitle = document.createElement("h3"); topicTitle.textContent=topic.title;
       const topicDesc = document.createElement("p"); topicDesc.textContent=topic.description;
       const codeEl = document.createElement("pre"); codeEl.textContent=topic.code;
@@ -203,23 +204,4 @@ function filterTopics(){
       const tagMatch = t.tags ? t.tags.join(" ").toLowerCase().includes(tagTerm) : false;
       return text.includes(term) && (tagTerm?tagMatch:true);
     });
-    return {...cat, topics};
-  }).filter(c=>c.topics.length>0);
-  renderCheats(filtered);
-}
-
-searchInput.addEventListener("input", filterTopics);
-tagInput.addEventListener("input", filterTopics);
-showFavoritesBtn.addEventListener("click", ()=>{
-  showFavoritesOnly = !showFavoritesOnly;
-  showFavoritesBtn.textContent = showFavoritesOnly ? "All Topics":"⭐ Favorites";
-  filterTopics();
-});
-
-// ---------------- Load after Auth ----------------
-auth.onAuthStateChanged(user=>{
-  if(user){
-    loadSnippets();
-    syncOfflineQueue();
-  } else window.location.href="login.html";
-});
+   
