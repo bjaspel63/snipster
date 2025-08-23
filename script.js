@@ -11,9 +11,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
-// ===== Supabase Setup =====
+// ===== Supabase Setup (CDN version) =====
 const SUPABASE_URL = "https://ekgqwgqnhpvucwnuupxk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZ3F3Z3FuaHB2dWN3bnV1cHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzI4NDgsImV4cCI6MjA3MTU0ODg0OH0.IxtcWi0xT6LD-mDeLf4QmVHSJuFKQIuvEqWkBlWRBEs";
+
+// The CDN global object is `supabase`
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== DOM Elements =====
@@ -48,16 +50,6 @@ function copyCode(code) {
   alert("Copied!");
 }
 
-// ===== Auth =====
-async function loginFirebase(email, password) {
-  try {
-    await auth.signInWithEmailAndPassword(email, password);
-  } catch(err) { alert("Login failed: " + err.message); }
-}
-async function logoutFirebase() {
-  await auth.signOut();
-}
-
 // ===== CRUD Snippets (Supabase DB) =====
 async function loadSnippets() {
   const user = auth.currentUser;
@@ -77,6 +69,7 @@ async function loadSnippets() {
 async function saveSnippet(snippet) {
   const user = auth.currentUser;
   if (!user) return alert("Login required!");
+
   try {
     const { data, error } = await supabase
       .from("snippets")
