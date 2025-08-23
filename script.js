@@ -1,4 +1,4 @@
-// Firebase Config
+// ===== Firebase Config & Auth =====
 const firebaseConfig = {
   apiKey: "AIzaSyCYXCxOcDwKyMoVQj0hjSIroPrnpza58T0",
   authDomain: "snipster-d0d4d.firebaseapp.com",
@@ -8,17 +8,14 @@ const firebaseConfig = {
   appId: "1:776489672682:web:9b5db075b2bdcad91c5c93",
   measurementId: "G-7143MHX2TF"
 };
-
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
 // ===== Supabase Setup =====
-
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 const SUPABASE_URL = "https://ekgqwgqnhpvucwnuupxk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZ3F3Z3FuaHB2dWN3bnV1cHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzI4NDgsImV4cCI6MjA3MTU0ODg0OH0.IxtcWi0xT6LD-mDeLf4QmVHSJuFKQIuvEqWkBlWRBEs";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ===== DOM Elements =====
 const cheatsheetEl = document.getElementById("cheatsheet");
@@ -53,58 +50,39 @@ function copyCode(code) {
 }
 
 // ===== Auth =====
-async function login(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return alert("Login failed: " + error.message);
-  alert("Logged in!");
-  loadSnippets();
+async function loginFirebase(email, password) {
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch(err) { alert("Login failed: " + err.message); }
+}
+async function logoutFirebase() {
+  await auth.signOut();
 }
 
-async function logout() {
-  if (!confirm("Are you sure you want to logout?")) return;
-  await supabase.auth.signOut();
-  cheatsheetEl.innerHTML = "";
-  allData = [];
-  alert("Logged out!");
-}
-
-loginBtn.onclick = () => {
-  const email = prompt("Email:");
-  const password = prompt("Password:");
-  login(email, password);
-};
-logoutBtn.onclick = logout;
-
-// ===== CRUD Snippets =====
+// ===== CRUD Snippets (Supabase DB) =====
 async function loadSnippets() {
-  const user = supabase.auth.user();
+  const user = auth.currentUser;
   if (!user) return;
 
-  // Load from Supabase
   const { data, error } = await supabase
     .from("snippets")
     .select("*")
-    .eq("user_id", user.id);
+    .eq("user_id", user.uid);
 
   if (error) return console.error(error);
   allData = data;
-
-  // Sync offline queue
   if (navigator.onLine) await syncOfflineQueue();
-
   renderCheats(allData);
 }
 
 async function saveSnippet(snippet) {
-  const user = supabase.auth.user();
+  const user = auth.currentUser;
   if (!user) return alert("Login required!");
-
   try {
     const { data, error } = await supabase
       .from("snippets")
-      .insert([{ ...snippet, user_id: user.id }]);
+      .insert([{ ...snippet, user_id: user.uid }]);
     if (error) throw error;
-
     allData.push(data[0]);
     renderCheats(allData);
     modal.classList.add("hidden");
@@ -123,26 +101,21 @@ async function deleteSnippet(id) {
 }
 
 async function saveFavorites(id, value) {
-  const user = supabase.auth.user();
+  const user = auth.currentUser;
   if (!user) return;
-
-  const { error } = await supabase
-    .from("snippets")
-    .update({ favorites: value })
-    .eq("id", id);
-
+  const { error } = await supabase.from("snippets").update({ favorites: value }).eq("id", id);
   if (error) console.error(error);
 }
 
 // ===== Offline Queue Sync =====
 async function syncOfflineQueue() {
-  const user = supabase.auth.user();
+  const user = auth.currentUser;
   if (!user) return;
   const queueCopy = [...offlineQueue];
   for (const op of queueCopy) {
     try {
       if (op.type === "add-snippet") {
-        await supabase.from("snippets").insert([{ ...op.data, user_id: user.id }]);
+        await supabase.from("snippets").insert([{ ...op.data, user_id: user.uid }]);
       }
       offlineQueue = offlineQueue.filter(i => i !== op);
       localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
@@ -213,5 +186,4 @@ saveBtn.addEventListener("click", () => {
 });
 
 // ===== Init =====
-supabase.auth.onAuthStateChange(() => loadSnippets());
-loadSnippets();
+auth.onAuthStateChanged(user => { if (user) loadSnippets(); });
