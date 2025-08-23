@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
   "/style.css",
   "/script.js",
   "/firebase-config.js",
+  "/supabase-config.js",
   "/manifest.json",
   "/data/cheats.json",
   "/assets/icons/icon-192.png",
@@ -45,8 +46,8 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const requestURL = new URL(event.request.url);
 
-  // Handle Appwrite API requests separately
-  if (requestURL.origin === "https://syd.cloud.appwrite.io/v1") {
+  // Handle Supabase API requests separately (network-first)
+  if (requestURL.origin.includes("supabase.co")) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -68,7 +69,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Default: cache-first strategy for other assets
+  // Default: cache-first for other assets
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       return cachedResponse || fetch(event.request).then(networkResponse => {
@@ -92,15 +93,14 @@ self.addEventListener("sync", event => {
   }
 });
 
-// Example: Function to sync offline updates (implement in your script)
+// Offline queue sync
 async function syncOfflineSnippets() {
   const cache = await caches.open(OFFLINE_DB_CACHE);
   const requests = await cache.keys();
   for (const req of requests) {
     const res = await cache.match(req);
     const data = await res.json();
-    // Send data to Appwrite API
-    // TODO: implement your Appwrite create/update calls here
+    // TODO: implement Supabase create/update calls here
   }
   console.log("[SW] Offline snippets synced");
 }
