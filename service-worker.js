@@ -6,10 +6,7 @@ const ASSETS_TO_CACHE = [
   "/login.html",
   "/style.css",
   "/script.js",
-  "/firebase-config.js",
-  "/supabase-config.js",
   "/manifest.json",
-  "/data/cheats.json",
   "/assets/icons/icon-192.png",
   "/assets/icons/icon-512.png"
 ];
