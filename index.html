@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snipster</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snipster</title>
+  <link rel="stylesheet" href="style.css"/>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-<!-- Supabase SDK v2 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.27.0/dist/supabase.min.js"></script>
+  <!-- ✅ Supabase v1 CDN (so your script.js works as written) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
 </head>
 <body class="light">
   <header>
     <h1>Snipster</h1>
     <div class="controls">
       <button id="toggle-theme">🌙</button>
-      <button id="logout-btn">Logout</button>
+      <button id="logout-btn" style="display:none;">Logout</button>
+      <button id="login-btn">Login</button>
     </div>
   </header>
 
@@ -38,9 +39,9 @@
 
   <div id="snippet-modal" class="modal hidden">
     <div class="modal-content">
-      <input id="new-snippet-title" placeholder="Title">
-      <input id="new-snippet-category" placeholder="Category">
-      <input id="new-snippet-tags" placeholder="Tags (comma separated)">
+      <input id="new-snippet-title" placeholder="Title" />
+      <input id="new-snippet-category" placeholder="Category" />
+      <input id="new-snippet-tags" placeholder="Tags (comma separated)" />
       <textarea id="new-snippet-code" placeholder="Code"></textarea>
       <textarea id="new-snippet-desc" placeholder="Description"></textarea>
       <button id="save-snippet-btn">Save</button>
