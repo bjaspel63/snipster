@@ -1,12 +1,22 @@
 {
-  "name": "Snipster Cheat Sheet",
+  "name": "Snipster",
   "short_name": "Snipster",
-  "start_url": "/index.html",
+  "description": "Interactive coding cheat sheet with runnable JS & Python snippets.",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1e1e1e",
+  "orientation": "portrait",
+  "background_color": "#121212",
+  "theme_color": "#f87171",
   "icons": [
-    {"src":"assets/icons/icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"assets/icons/icon-512.png","sizes":"512x512","type":"image/png"}
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
