@@ -54,10 +54,11 @@ async function loadSnippets() {
   const user = auth.currentUser;
   if (!user) return;
 
-  const { data, error } = await supabaseClient
-    .from("snippets")
-    .select("*")
-    .eq("user_id", user.uid);
+  const { data, error } = await supabase
+  .from("snippets")
+  .select("*")
+  .eq("user_id", user.uid);  // Firebase UID stored as text
+
 
   if (error) return console.error(error);
   allData = data || [];
