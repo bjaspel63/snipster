@@ -1,183 +1,186 @@
-// ===== Firebase Config & Auth =====
-const firebaseConfig = {
-  apiKey: "AIzaSyCYXCxOcDwKyMoVQj0hjSIroPrnpza58T0",
-  authDomain: "snipster-d0d4d.firebaseapp.com",
-  projectId: "snipster-d0d4d",
-  storageBucket: "snipster-d0d4d.firebasestorage.app",
-  messagingSenderId: "776489672682",
-  appId: "1:776489672682:web:9b5db075b2bdcad91c5c93",
-  measurementId: "G-7143MHX2TF"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-
-// ===== Supabase Setup (CDN version) =====
-const SUPABASE_URL = "https://ekgqwgqnhpvucwnuupxk.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZ3F3Z3FuaHB2dWN3bnV1cHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzI4NDgsImV4cCI6MjA3MTU0ODg0OH0.IxtcWi0xT6LD-mDeLf4QmVHSJuFKQIuvEqWkBlWRBEs";
-
-// ✅ Don't overwrite supabase — use supabase.createClient() into a new variable
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ===== DOM Elements =====
 const cheatsheetEl = document.getElementById("cheatsheet");
-const logoutBtn = document.getElementById("logout-btn");
-const saveBtn = document.getElementById("save-snippet-btn");
-const fabBtn = document.getElementById("add-snippet-fab");
-const modal = document.getElementById("snippet-modal");
-const cancelBtn = document.getElementById("cancel-snippet-btn");
 const searchInput = document.getElementById("search");
 const tagInput = document.getElementById("tag-filter");
+const toggleThemeBtn = document.getElementById("toggle-theme");
 const showFavoritesBtn = document.getElementById("show-favorites");
 const consoleOutput = document.getElementById("console-output");
 
 let allData = [];
 let showFavoritesOnly = false;
-let offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
 
-// ===== Helpers =====
+// --- Console Helpers ---
 function clearConsole() { consoleOutput.textContent = ""; }
 function printToConsole(text) {
   consoleOutput.textContent += text + "\n";
   consoleOutput.scrollTop = consoleOutput.scrollHeight;
 }
-function addToQueue(op) {
-  offlineQueue.push(op);
-  localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
-}
-function copyCode(code) {
-  navigator.clipboard.writeText(code);
-  alert("Copied!");
-}
 
-// ===== CRUD Snippets (Supabase DB) =====
-async function loadSnippets() {
-  const user = auth.currentUser;
-  if (!user) return;
+// --- Theme Toggle ---
+toggleThemeBtn.addEventListener("click", () => {
+  document.body.classList.toggle("light");
+  toggleThemeBtn.textContent = document.body.classList.contains("light") ? "🌙" : "☀️";
+});
 
-  const { data, error } = await supabase
-  .from("snippets")
-  .select("*")
-  .eq("user_id", user.uid);  // Firebase UID stored as text
+// --- Load JSON Data ---
+fetch("data/cheats.json")
+  .then(res => res.json())
+  .then(data => { allData = data; renderCheats(data); });
 
-
-  if (error) return console.error(error);
-  allData = data || [];
-  if (navigator.onLine) await syncOfflineQueue();
-  renderCheats(allData);
-}
-
-async function saveSnippet(snippet) {
-  const user = auth.currentUser;
-  if (!user) return alert("Login required!");
-
-  try {
-    const { data, error } = await supabaseClient
-      .from("snippets")
-      .insert([{ ...snippet, user_id: user.uid }])
-      .select();
-
-    if (error) throw error;
-    allData.push(data[0]);
-    renderCheats(allData);
-    modal.classList.add("hidden");
-  } catch (err) {
-    console.error(err);
-    alert("Error saving snippet. Added to offline queue.");
-    addToQueue({ type: "add-snippet", data: snippet });
-  }
-}
-
-async function deleteSnippet(id) {
-  if (!confirm("Delete this snippet?")) return;
-  await supabaseClient.from("snippets").delete().eq("id", id);
-  allData = allData.filter(s => s.id !== id);
-  renderCheats(allData);
-}
-
-async function saveFavorites(id, value) {
-  const user = auth.currentUser;
-  if (!user) return;
-  const { error } = await supabaseClient.from("snippets").update({ favorites: value }).eq("id", id);
-  if (error) console.error(error);
-}
-
-// ===== Offline Queue Sync =====
-async function syncOfflineQueue() {
-  const user = auth.currentUser;
-  if (!user) return;
-  const queueCopy = [...offlineQueue];
-  for (const op of queueCopy) {
-    try {
-      if (op.type === "add-snippet") {
-        await supabaseClient.from("snippets").insert([{ ...op.data, user_id: user.uid }]);
-      }
-      offlineQueue = offlineQueue.filter(i => i !== op);
-      localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
-    } catch (err) {
-      console.error("Sync failed:", err);
-    }
-  }
-}
-window.addEventListener("online", syncOfflineQueue);
-
-// ===== Render =====
+// --- Render Cheats ---
 function renderCheats(data) {
   cheatsheetEl.innerHTML = "";
-  data.forEach(snippet => {
-    if (showFavoritesOnly && !snippet.favorites) return;
-    if (searchInput.value && !snippet.title.toLowerCase().includes(searchInput.value.toLowerCase())) return;
-    if (tagInput.value && snippet.tags && !snippet.tags.some(t => t.toLowerCase().includes(tagInput.value.toLowerCase()))) return;
+  data.forEach(category => {
+    const catDiv = document.createElement("div");
+    catDiv.className = "category";
 
-    const div = document.createElement("div");
-    div.className = "topic";
-    div.innerHTML = `
-      <h3>${snippet.title}</h3>
-      <pre>${snippet.code}</pre>
-      <p>${snippet.description || ""}</p>
-      <button onclick="copyCode(\`${snippet.code.replace(/`/g, "\\`")}\`)">Copy</button>
-      <button onclick="toggleFavorite('${snippet.id}', ${!snippet.favorites})">${snippet.favorites ? "★" : "☆"}</button>
-      <button onclick="deleteSnippet('${snippet.id}')">Delete</button>
-      <button onclick="runSnippet(\`${snippet.code.replace(/`/g, "\\`")}\`)">Run</button>
-    `;
-    cheatsheetEl.appendChild(div);
+    const catTitle = document.createElement("h2");
+    catTitle.textContent = category.category;
+    catDiv.appendChild(catTitle);
+
+    category.topics.forEach(topic => {
+      const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+      if (showFavoritesOnly && !favorites.includes(topic.title)) return;
+
+      const topicDiv = document.createElement("div");
+      topicDiv.className = "topic";
+
+      const topicTitle = document.createElement("h3");
+      topicTitle.textContent = topic.title;
+
+      // --- Description & Code ---
+      const topicDesc = document.createElement("p");
+      topicDesc.textContent = topic.description;
+
+      const codeEl = document.createElement("pre");
+      codeEl.className = `language-${topic.language}`;
+      codeEl.textContent = topic.code;
+
+      // --- Copy Button ---
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "copy-btn";
+      copyBtn.textContent = "Copy";
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(topic.code);
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => copyBtn.textContent = "Copy", 1000);
+      });
+
+      // --- Favorite Button ---
+      const favoriteBtn = document.createElement("button");
+      favoriteBtn.className = "copy-btn";
+      favoriteBtn.textContent = favorites.includes(topic.title) ? "★" : "☆";
+      favoriteBtn.addEventListener("click", () => {
+        let favs = JSON.parse(localStorage.getItem("favorites") || "[]");
+        if (favs.includes(topic.title)) {
+          favs = favs.filter(t => t !== topic.title);
+          favoriteBtn.textContent = "☆";
+        } else {
+          favs.push(topic.title);
+          favoriteBtn.textContent = "★";
+        }
+        localStorage.setItem("favorites", JSON.stringify(favs));
+      });
+
+      // --- Run Button ---
+      const runBtn = document.createElement("button");
+      runBtn.className = "copy-btn";
+      runBtn.textContent = "Run";
+      runBtn.addEventListener("click", () => {
+        clearConsole();
+        const currentCode = topicDiv.querySelector(".editable-code") || codeEl;
+        const codeToRun = currentCode.value || currentCode.textContent;
+
+        if (topic.language === "javascript") {
+          try { printToConsole(eval(codeToRun)); }
+          catch (e) { printToConsole("Error: " + e.message); }
+        } else if (topic.language === "python") {
+          runPython(codeToRun);
+        } else {
+          printToConsole("Run not supported for this language.");
+        }
+      });
+
+      // --- Edit Button ---
+      const editBtn = document.createElement("button");
+      editBtn.className = "copy-btn";
+      editBtn.textContent = "Edit";
+      let isEditing = false;
+
+      editBtn.addEventListener("click", () => {
+        if (!isEditing) {
+          const textarea = document.createElement("textarea");
+          textarea.value = codeEl.textContent;
+          textarea.className = "editable-code";
+          codeEl.replaceWith(textarea);
+          editBtn.textContent = "Save";
+          isEditing = true;
+        } else {
+          const newPre = document.createElement("pre");
+          newPre.className = `language-${topic.language}`;
+          const textarea = topicDiv.querySelector(".editable-code");
+          newPre.textContent = textarea.value;
+          textarea.replaceWith(newPre);
+          editBtn.textContent = "Edit";
+          isEditing = false;
+          Prism.highlightAll();
+        }
+      });
+
+      // --- Collapsible ---
+      topicTitle.addEventListener("click", () => {
+        codeEl.classList.toggle("hidden");
+        topicDesc.classList.toggle("hidden");
+      });
+
+      topicDiv.appendChild(topicTitle);
+      topicDiv.appendChild(copyBtn);
+      topicDiv.appendChild(favoriteBtn);
+      topicDiv.appendChild(runBtn);
+      topicDiv.appendChild(editBtn);
+      topicDiv.appendChild(topicDesc);
+      topicDiv.appendChild(codeEl);
+
+      catDiv.appendChild(topicDiv);
+    });
+
+    cheatsheetEl.appendChild(catDiv);
   });
+  Prism.highlightAll();
 }
 
-function runSnippet(code) {
-  clearConsole();
-  try { printToConsole(eval(code)); } 
-  catch (err) { printToConsole("Error: " + err.message); }
+// --- Search + Tag Filter ---
+function filterTopics() {
+  const term = searchInput.value.toLowerCase();
+  const tagTerm = tagInput.value.toLowerCase();
+  const filtered = allData.map(cat => {
+    const topics = cat.topics.filter(t => {
+      const text = t.title.toLowerCase() + " " + t.description.toLowerCase();
+      const tagMatch = t.tags.join(" ").toLowerCase().includes(tagTerm);
+      return text.includes(term) && tagMatch;
+    });
+    return { ...cat, topics };
+  }).filter(c => c.topics.length > 0);
+  renderCheats(filtered);
 }
 
-window.toggleFavorite = async (id, value) => {
-  await saveFavorites(id, value);
-  const snippet = allData.find(s => s.id === id);
-  if (snippet) snippet.favorites = value;
-  renderCheats(allData);
-};
+searchInput.addEventListener("input", filterTopics);
+tagInput.addEventListener("input", filterTopics);
 
-// ===== Filters =====
-searchInput.addEventListener("input", () => renderCheats(allData));
-tagInput.addEventListener("input", () => renderCheats(allData));
+// --- Favorites Toggle ---
 showFavoritesBtn.addEventListener("click", () => {
   showFavoritesOnly = !showFavoritesOnly;
-  renderCheats(allData);
+  showFavoritesBtn.textContent = showFavoritesOnly ? "All Topics" : "⭐ Favorites";
+  filterTopics();
 });
 
-// ===== Modal =====
-fabBtn.addEventListener("click", () => modal.classList.remove("hidden"));
-cancelBtn.addEventListener("click", () => modal.classList.add("hidden"));
-saveBtn.addEventListener("click", () => {
-  const snippet = {
-    title: document.getElementById("new-snippet-title").value.trim(),
-    category: document.getElementById("new-snippet-category").value.trim(),
-    tags: document.getElementById("new-snippet-tags").value.split(",").map(t => t.trim()).filter(Boolean),
-    code: document.getElementById("new-snippet-code").value,
-    description: document.getElementById("new-snippet-desc").value
-  };
-  if (!snippet.title || !snippet.category || !snippet.code) return alert("Title, category, and code required.");
-  saveSnippet(snippet);
-});
-
-// ===== Init =====
-auth.onAuthStateChanged(user => { if (user) loadSnippets(); });
+// --- Python Runner ---
+function builtinRead(x) {
+  if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined) 
+    throw "File not found: '" + x + "'";
+  return Sk.builtinFiles["files"][x];
+}
+function runPython(code) {
+  Sk.configure({ output: text => printToConsole(text), read: builtinRead });
+  Sk.misceval.asyncToPromise(() => Sk.importMainWithBody("<stdin>", false, code, true))
+    .catch(err => printToConsole(err.toString()));
+}
