@@ -1,0 +1,122 @@
+[
+  {
+    "category": "JavaScript",
+    "topics": [
+      {
+        "title": "Array Map",
+        "description": "Transforms an array by applying a function to each element.",
+        "code": "const nums = [1,2,3];\nconst doubled = nums.map(n => n * 2);",
+        "language": "javascript",
+        "tags": ["array","map","functional"]
+      },
+      {
+        "title": "Filter Array",
+        "description": "Filters elements based on a condition.",
+        "code": "const nums = [1,2,3,4];\nconst evens = nums.filter(n => n % 2 === 0);",
+        "language": "javascript",
+        "tags": ["array","filter"]
+      },
+      {
+        "title": "Reduce Array",
+        "description": "Reduces an array to a single value using a function.",
+        "code": "const nums = [1,2,3,4];\nconst sum = nums.reduce((acc,n) => acc + n, 0);",
+        "language": "javascript",
+        "tags": ["array","reduce","sum"]
+      },
+      {
+        "title": "Arrow Function",
+        "description": "Short syntax for functions.",
+        "code": "const add = (a,b) => a + b;",
+        "language": "javascript",
+        "tags": ["function","arrow"]
+      },
+      {
+        "title": "Template Strings",
+        "description": "Use backticks for multi-line strings and variables.",
+        "code": "const name = 'John';\nconst greeting = `Hello ${name}`;",
+        "language": "javascript",
+        "tags": ["string","template"]
+      }
+    ]
+  },
+  {
+    "category": "Python",
+    "topics": [
+      {
+        "title": "List Comprehension",
+        "description": "Quickly create lists in one line.",
+        "code": "[x*2 for x in range(5)]",
+        "language": "python",
+        "tags": ["list","comprehension"]
+      },
+      {
+        "title": "Lambda Function",
+        "description": "Anonymous one-line functions.",
+        "code": "add = lambda a,b: a+b",
+        "language": "python",
+        "tags": ["function","lambda"]
+      },
+      {
+        "title": "Dictionary Iteration",
+        "description": "Iterate over keys and values.",
+        "code": "my_dict = {'a':1,'b':2}\nfor key, value in my_dict.items():\n    print(key,value)",
+        "language": "python",
+        "tags": ["dictionary","loop"]
+      },
+      {
+        "title": "F-Strings",
+        "description": "Formatted strings in Python 3.6+.",
+        "code": "name = 'Alice'\nprint(f'Hello {name}')",
+        "language": "python",
+        "tags": ["string","format"]
+      },
+      {
+        "title": "Import Module",
+        "description": "Import standard or external modules.",
+        "code": "import math\nprint(math.sqrt(16))",
+        "language": "python",
+        "tags": ["import","module"]
+      }
+    ]
+  },
+  {
+    "category": "CSS",
+    "topics": [
+      {
+        "title": "Center a div",
+        "description": "Use flexbox to center a div horizontally and vertically.",
+        "code": "display: flex;\njustify-content: center;\nalign-items: center;",
+        "language": "css",
+        "tags": ["flex","center"]
+      },
+      {
+        "title": "Grid Layout",
+        "description": "Create a 3-column grid layout.",
+        "code": "display: grid;\ngrid-template-columns: repeat(3, 1fr);\ngap: 10px;",
+        "language": "css",
+        "tags": ["grid","layout"]
+      },
+      {
+        "title": "Hover Effect",
+        "description": "Change color on hover.",
+        "code": "button:hover {\n  background-color: #f87171;\n}",
+        "language": "css",
+        "tags": ["hover","button"]
+      },
+      {
+        "title": "Box Shadow",
+        "description": "Add a shadow to an element.",
+        "code": "box-shadow: 0px 4px 6px rgba(0,0,0,0.2);",
+        "language": "css",
+        "tags": ["shadow","css"]
+      },
+      {
+        "title": "Transition",
+        "description": "Smoothly animate property changes.",
+        "code": "transition: all 0.3s ease;",
+        "language": "css",
+        "tags": ["transition","animation"]
+      }
+    ]
+  }
+]
