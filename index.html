@@ -1,53 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Snipster</title>
-  <link rel="stylesheet" href="style.css"/>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snipster</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f87171">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css"/>
 </head>
-<body class="light">
-  <header>
-    <h1>Snipster</h1>
-    <div class="controls">
-      <button id="toggle-theme">🌙</button>
-      <button id="logout-btn" style="display:none;">Logout</button>
-      <button id="login-btn">Login</button>
-    </div>
-  </header>
-
-  <div class="filters">
-    <input type="text" id="search" placeholder="Search snippets...">
+<body>
+<header>
+  <h1>Snipster - Interactive Cheat Sheet</h1>
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search topics...">
     <input type="text" id="tag-filter" placeholder="Filter by tag...">
-    <button id="show-favorites">Show Favorites</button>
+    <button id="toggle-theme">🌙</button>
+    <button id="show-favorites">⭐ Favorites</button>
   </div>
+</header>
 
-  <main id="cheatsheet"></main>
+<main id="cheatsheet"></main>
 
-  <div id="console-panel">
-    <pre id="console-output"></pre>
-  </div>
+<div id="console-panel">
+  <h3>Console Output:</h3>
+  <pre id="console-output"></pre>
+</div>
 
-  <button id="add-snippet-fab" class="fab">+</button>
-
-  <div id="snippet-modal" class="modal hidden">
-    <div class="modal-content">
-      <input id="new-snippet-title" placeholder="Title" />
-      <input id="new-snippet-category" placeholder="Category" />
-      <input id="new-snippet-tags" placeholder="Tags (comma separated)" />
-      <textarea id="new-snippet-code" placeholder="Code"></textarea>
-      <textarea id="new-snippet-desc" placeholder="Description"></textarea>
-      <button id="save-snippet-btn">Save</button>
-      <button id="cancel-snippet-btn">Cancel</button>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+<!-- Skulpt Python interpreter -->
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<!-- Prism.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js"></script>
+<script src="script.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('SW registered', reg))
+      .catch(err => console.log('SW failed', err));
+  });
+}
+</script>
 </body>
 </html>
